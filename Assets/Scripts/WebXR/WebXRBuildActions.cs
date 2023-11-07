@@ -7,8 +7,8 @@ using UnityEditor.Callbacks;
 using UnityEngine;
 #endif
 
-namespace ARWT.Core{
-    public class WebXRBuildActions{
+namespace ARWT.Core {
+    public class WebXRBuildActions {
         #if UNITY_EDITOR
 
         const string buildPlaceholder = "%UNITY_WEBGL_BUILD_URL%";
@@ -16,24 +16,39 @@ namespace ARWT.Core{
         static string imagesPath = "images";
         static string appJS = "js/app.js";
         static string index = "index.html";
-        
+
         [PostProcessBuild]
-        public static void OnPostProcessBuild(BuildTarget target, string targetPath){
-            if(PlayerSettings.WebGL.template.Contains("WebXR")){
-                var path = Path.Combine(targetPath, "Build/UnityLoader.js");
-                var text = File.ReadAllText(path);
-                text = text.Replace("UnityLoader.SystemInfo.mobile", "false");
-                File.WriteAllText(path, text);
-
-                string buildJsonPath = "Build/" + getName(targetPath) + ".json";
-                path = Path.Combine(targetPath, "Build/" + getName(targetPath) + ".json");
-                replaceInFile(path, "backgroundColor", "");
-
-                string unityDeclaration = $"const unityInstance = UnityLoader.instantiate(\"unityContainer\", \"{buildJsonPath}\");";
-                replaceInFile(Path.Combine(targetPath, appJS), buildPlaceholder, unityDeclaration);
-
-                searchImageLibrary(targetPath);
+        public static void OnPostProcessBuild(BuildTarget target, string targetPath)
+        {
+            if (!PlayerSettings.WebGL.template.Contains("WebXR"))
+            {
+                return;
             }
+
+#if UNITY_2021_1_OR_NEWER
+            // fix Unity's loader.js
+            var indexContent = File.ReadAllText(Path.Combine(targetPath, index));
+            indexContent = indexContent.Replace("UnityLoader.js", string.Empty);
+            File.WriteAllText(Path.Combine(targetPath, index), indexContent);
+
+            // remove manual Unity instantiation
+            replaceInFile(Path.Combine(targetPath, appJS), buildPlaceholder, string.Empty);
+#elif UNITY_2019_1_OR_NEWER
+            var path = Path.Combine(targetPath, "Build/UnityLoader.js");
+            var text = File.ReadAllText(path);
+            text = text.Replace("UnityLoader.SystemInfo.mobile", "false");
+            File.WriteAllText(path, text);
+
+            string buildJsonPath = "Build/" + getName(targetPath) + ".json";
+            path = Path.Combine(targetPath, "Build/" + getName(targetPath) + ".json");
+            replaceInFile(path, "backgroundColor", "");
+
+            string unityDeclaration = $"const unityInstance = UnityLoader.instantiate(\"unityContainer\", \"{buildJsonPath}\");";
+            replaceInFile(Path.Combine(targetPath, appJS), buildPlaceholder, unityDeclaration);
+#else
+            Debug.LogWarning("Unknown Unity version");
+#endif
+            searchImageLibrary(targetPath);
         }
 
         static void searchImageLibrary(string targetPath){

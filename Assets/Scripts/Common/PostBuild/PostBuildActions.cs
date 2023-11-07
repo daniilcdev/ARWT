@@ -3,12 +3,13 @@ using System.IO;
 #if UNITY_EDITOR
 using UnityEditor;
 using UnityEditor.Callbacks;
-using UnityEngine;
 #endif
 
-namespace ARWT.Core{
-    public class PostBuildActions{
-        #if UNITY_EDITOR
+namespace ARWT.Core
+{
+    public class PostBuildActions
+    {
+#if UNITY_EDITOR
 
         const string markerPlaceholder = "--MARKERS--";
         const string buildPlaceholder = "%UNITY_WEBGL_BUILD_URL%";
@@ -19,90 +20,126 @@ namespace ARWT.Core{
         static string index = "index.html";
         static string appJS = "js/app.js";
 
-        
-
         [PostProcessBuild]
-        public static void OnPostProcessBuild(BuildTarget target, string targetPath){
-            if(PlayerSettings.WebGL.template.Contains("WebAR")){
-                var path = Path.Combine(targetPath, "Build/UnityLoader.js");
-                var text = File.ReadAllText(path);
-                text = text.Replace("UnityLoader.SystemInfo.mobile", "false");
-                File.WriteAllText(path, text);
-
-                string buildJsonPath = "Build/" + getName(targetPath) + ".json";
-                path = Path.Combine(targetPath, "Build/" + getName(targetPath) + ".json");
-                replaceInFile(path, "backgroundColor", "");
-
-                generateHTML(targetPath);
-                copyImages(targetPath);
-
-                string unityDeclaration = $"const unityInstance = UnityLoader.instantiate(\"unityContainer\", \"{buildJsonPath}\");";
-                replaceInFile(Path.Combine(targetPath, appJS), buildPlaceholder, unityDeclaration);
+        public static void OnPostProcessBuild(BuildTarget target, string targetPath)
+        {
+            if (!PlayerSettings.WebGL.template.Contains("WebAR"))
+            {
+                return;
             }
+
+#if UNITY_2021_1_OR_NEWER
+            // fix Unity's loader.js
+            var indexContent = File.ReadAllText(Path.Combine(targetPath, index));
+            indexContent = indexContent.Replace("UnityLoader.js", string.Empty);
+            File.WriteAllText(Path.Combine(targetPath, index), indexContent);
+            
+            // remove manual Unity instantiation
+            replaceInFile(Path.Combine(targetPath, appJS), buildPlaceholder, string.Empty);
+#elif UNITY_2019_1_OR_NEWER
+            var path = Path.Combine(targetPath, "Build/UnityLoader.js");
+            var text = File.ReadAllText(path);
+            text = text.Replace("UnityLoader.SystemInfo.mobile", "false");
+            File.WriteAllText(path, text);
+
+            string buildJsonPath = "Build/" + getName(targetPath) + ".json";
+            path = Path.Combine(targetPath, "Build/" + getName(targetPath) + ".json");
+            replaceInFile(path, "backgroundColor", "");
+
+            string unityDeclaration = $"const unityInstance = UnityLoader.instantiate(\"unityContainer\", \"{buildJsonPath}\");";
+            replaceInFile(Path.Combine(targetPath, appJS), buildPlaceholder, unityDeclaration);
+#else
+            Debug.LogWarning("Unknown Unity version");
+#endif
+
+            generateHTML(targetPath);
+            copyImages(targetPath);
         }
 
-        static string getName(string p){
+        static string getName(string p)
+        {
             string[] pieces = new string[1];
-            if(p.Contains("/")){
+            if (p.Contains("/"))
+            {
                 pieces = p.Split('/');
-            }else if(p.Contains("\\")){
+            }
+            else if (p.Contains("\\"))
+            {
                 pieces = p.Split('\\');
             }
-            return pieces[pieces.Length-1]; 
+
+            return pieces[pieces.Length - 1];
         }
 
-        static void generateHTML(string targetPath){
+        static void generateHTML(string targetPath)
+        {
             string html = "";
 
             var info = new DirectoryInfo(projectMarkers);
             var fileInfo = info.GetFiles();
             var completeMarkersPath = Path.Combine(targetPath, markersPath);
-            if(Directory.Exists(completeMarkersPath)){
+            if (Directory.Exists(completeMarkersPath))
+            {
                 Directory.Delete(completeMarkersPath, true);
             }
+
             Directory.CreateDirectory(completeMarkersPath);
 
-            foreach (var file in fileInfo){
-                if(file.Extension == ".patt"){
+            foreach (var file in fileInfo)
+            {
+                if (file.Extension == ".patt")
+                {
                     FileUtil.CopyFileOrDirectory(file.FullName, Path.Combine(completeMarkersPath, file.Name));
                     var markerName = file.Name.Replace(file.Extension, "");
                     var markerUrl = Path.Combine(markersPath, file.Name);
-                    html += $"\t\t\t<a-marker type=\"pattern\" url=\"{markerUrl}\" markercontroller=\"name : {markerName}\"></a-marker>\n";
+                    html +=
+                        $"\t\t\t<a-marker type=\"pattern\" url=\"{markerUrl}\" markercontroller=\"name : {markerName}\"></a-marker>\n";
                 }
             }
 
             replaceInFile(Path.Combine(targetPath, index), markerPlaceholder, html);
         }
 
-        static void replaceInFile(string indexPath, string lookingFor, string replace){
+        static void replaceInFile(string indexPath, string lookingFor, string replace)
+        {
             string[] lines = File.ReadAllLines(indexPath);
             List<string> newLines = new List<string>();
-            foreach(var l in lines){
-                if(l.Contains(lookingFor)){
+            foreach (var l in lines)
+            {
+                if (l.Contains(lookingFor))
+                {
                     newLines.Add(replace);
-                }else{
+                }
+                else
+                {
                     newLines.Add(l);
                 }
             }
+
             File.WriteAllLines(indexPath, newLines.ToArray());
         }
 
-        static void copyImages(string targetPath){
+        static void copyImages(string targetPath)
+        {
             var info = new DirectoryInfo(projectMarkersImages);
             var fileInfo = info.GetFiles();
             var completeImagesPath = Path.Combine(targetPath, markersImagesPath);
-            if(Directory.Exists(completeImagesPath)){
+            if (Directory.Exists(completeImagesPath))
+            {
                 Directory.Delete(completeImagesPath, true);
             }
+
             Directory.CreateDirectory(completeImagesPath);
 
-            foreach (var file in fileInfo){
-                if(file.Extension == ".jpg"){
+            foreach (var file in fileInfo)
+            {
+                if (file.Extension == ".jpg")
+                {
                     FileUtil.CopyFileOrDirectory(file.FullName, Path.Combine(completeImagesPath, file.Name));
                 }
             }
         }
 
-        #endif
+#endif
     }
 }

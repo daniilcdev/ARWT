@@ -1,20 +1,30 @@
 <!DOCTYPE html>
-<html lang="en-us"> 
-  <head>
+<html lang="en-us">
+<head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <title>Unity WebGL Player | WebGL Test AR</title>
-    <script src="Build/UnityLoader.js"></script>
+    <script src="Build/{{{ LOADER_FILENAME }}}"></script>
     <script src="js/three.min.js"></script>
     <link rel="stylesheet" href="css/index.css">
-  </head>
+</head>
 
-  <body>
-    <div id="images">
-      --IMAGES--
+<body>
+<div id="images">
+    --IMAGES--
+</div>
+<div id="unity-container" style="position: absolute; width: 100%; height: 100%; left:0; top:0;">
+    <canvas id="unity-canvas" style="position: absolute; width: 100%; height: 100%;"></canvas>
+    <div id="unity-loading-bar">
+        <div id="unity-logo"></div>
+        <div id="unity-progress-bar-empty">
+            <div id="unity-progress-bar-full"></div>
+        </div>
     </div>
-    <div id="unityContainer"></div>    
-    <script src="js/app.js"></script>
-  </body>
+    <div id="unity-warning"></div>
+</div>
+--unityInit--
+<script src="js/app.js"></script>
+</body>
 </html>

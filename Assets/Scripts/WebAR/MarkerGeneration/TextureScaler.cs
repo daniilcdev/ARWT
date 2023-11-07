@@ -9,7 +9,7 @@ namespace ARWT.Marker{
             scaleGPU(src, width, height, mode);
 
             Texture2D result = new Texture2D(width, height, TextureFormat.RGB24, true);
-            result.Resize(width, height);
+            result.Reinitialize(width, height);
             result.ReadPixels(texR, 0, 0, true);
             result.Apply();
             return result;
@@ -18,7 +18,7 @@ namespace ARWT.Marker{
         public static void scale(Texture2D tex, int width, int height, FilterMode mode = FilterMode.Trilinear){
             Rect texR = new Rect(0, 0, width, height);
             scaleGPU(tex, width, height, mode);
-            tex.Resize(width, height);
+            tex.Reinitialize(width, height);
             tex.ReadPixels(texR, 0, 0, true);
             tex.Apply(true);
         }
